@@ -1,0 +1,64 @@
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (CentOS)
+    tags: always
+    dnf:
+      state: absent
+      autoremove: yes
+    when: ansible_distribution == "CentOS"
+
+  - name: install updates (Ubuntu)
+    tags: always
+    apt:
+      state: absent
+      autoremove: yes
+    when: ansible_distribution == "Ubuntu"
+
+
+- hosts: ubuntu
+  become: true
+  tasks:  
+ 
+    - name: Ubuntu 
+      block:
+        - name: Install ufw on Ubuntu
+          apt:
+            name: ufw
+            state: present
+
+        - name: Enable SSH port (allow incoming SSH connections) on Ubuntu
+          command:
+            cmd: ufw allow ssh
+
+        - name: Enable firewall on Ubuntu
+          command:
+            cmd: ufw --force enable
+      when: ansible_os_family == 'Debian'
+
+- hosts: centos
+  become: true
+  tasks:
+
+    - name: CentOS
+      block:
+        - name: Install firewalld on CentOS
+          yum:
+            name: firewalld
+            state: present
+
+        - name: Start firewalld service on CentOS
+          service:
+            name: firewalld
+            state: started
+            enabled: yes
+
+        - name: Enable SSH port (allow incoming SSH connections) on CentOS
+          command:
+            cmd: firewall-cmd --permanent --add-service=ssh
+
+        - name: Reload firewall on CentOS
+          command:
+            cmd: firewall-cmd --reload
+      when: ansible_os_family == 'RedHat'
